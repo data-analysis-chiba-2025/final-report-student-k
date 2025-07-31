@@ -1,0 +1,123 @@
+---
+title: "Analysis of The Annual Cannabis Holiday and Fatal Traffic Crashes"
+author: Student K
+format: docx
+---
+
+```{r}
+#| label: setup
+#| echo: false
+#| message: false
+#| warning: false
+# Load packages
+library(tidyverse)
+library(lubridate) 
+library(scales) 
+daily_accidents <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-04-22/daily_accidents.csv')
+daily_accidents_420 <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2025/2025-04-22/daily_accidents_420.csv')
+
+
+```
+
+## Introduction
+
+The “Fatal car crashes on 4/20” dataset includes the (lack of) connection between fatal car crashes in the United States and the "4/20 holiday" (4:20pm to 11:59pm on April 20th). The original data come from the tidy tuesday website,https://www.tidytuesday.com/
+
+Cannabis use has been linked to impaired driving ability and the risk of fatal traffic crashes. April 20th each year ("4/20") is an unofficial holiday in cannabis culture, known for heavy cannabis consumption.This analysis investigate whether there is actually an increase in fatal traffic crashes on "4/20" and whether this effect varies from year to year.
+
+Here, we analyze the Fatal car crashes on 4/20 to answer the following questions: • Whether there is an increase in fatal traffic crashes on "4/20". • Whether this effect varies from year to year or not.
+
+## Data visualization
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+daily_accidents_420_filtered <- daily_accidents_420 %>%
+  mutate(
+    date = ymd(date),
+    e420 = as.logical(e420),
+    e420 = replace_na(e420, FALSE), # Treat NA as not 4/20
+    year = year(date)
+  ) %>%
+  filter(e420 == TRUE) # Only include April 20th data
+
+
+daily_accidents_420_filtered <- daily_accidents_420_filtered %>%
+  filter(year >= 1992 & year <= 2016)
+
+
+ggplot(daily_accidents_420_filtered, aes(x = year, y = fatalities_count)) +
+  geom_line(color = "#A52A2A", size = 0.8) + # Brown for specific day
+  geom_point(color = "#A52A2A", size = 2) +
+  labs(
+    title = "Annual Number of Drivers Involved in Fatal Crashes on April 20th",
+    subtitle = "Trend from 1992 to 2016",
+    x = "Year",
+    y = "Number of drivers involved in fatal crashes"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+{{< pagebreak >}}
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+daily_accidents_420_comparison <- daily_accidents_420 %>%
+  mutate(
+    e420 = as.logical(e420),
+    e420 = replace_na(e420, FALSE)
+  ) %>%
+  # Convert to categorical variable for plotting
+  mutate(day_type = ifelse(e420, "April 20th", "Other Days"))
+
+
+daily_accidents_420_comparison <- daily_accidents_420_comparison %>%
+  mutate(year = year(date)) %>%
+  filter(year >= 1992 & year <= 2016)
+
+
+daily_accidents_420_summary <- daily_accidents_420_comparison %>%
+  group_by(day_type) %>%
+  summarise(
+    mean_fatalities = mean(fatalities_count, na.rm = TRUE),
+    sd_fatalities = sd(fatalities_count, na.rm = TRUE)
+  )
+
+ggplot(daily_accidents_420_summary, aes(x = day_type, y = mean_fatalities, fill = day_type)) +
+  geom_bar(stat = "identity", alpha = 0.8) +
+  geom_errorbar(aes(ymin = mean_fatalities - sd_fatalities, ymax = mean_fatalities + sd_fatalities),
+                width = 0.2, position = position_dodge(.9), color = "gray30") +
+  labs(
+    title = "Average Number of Drivers Involved in Fatal Crashes on April 20th vs. Other Days",
+    subtitle = "Including Standard Deviation Bars (1992-2016)",
+    x = "Day Type",
+    y = "Average number of drivers involved in fatal crashes"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    legend.position = "none" # Hide legend
+  ) +
+  scale_fill_manual(values = c("April 20th" = "#CD5C5C", "Other Days" = "#6A5ACD")) # IndianRed and SlateBlue
+```
+
+## Discussion
+
+Figure 1 displays the annual number of drivers involved in fatal crashes specifically on April 20th (1992-2016). This figure shows no consistent upward or downward trend in fatalities on this specific day. There is no clear pattern of increasing fatal crashes attributable to "4/20" evident from these raw counts.
+
+Figure 2 compares the average number of drivers involved in fatal crashes on April 20th versus all other days (1992-2016). The number of accidents on April 20th is about one-third of the average number on other days.
+
+The message conveyed by these data visualizations is that, based on the raw fatality counts from 1992 to 2016, there is no strong visual evidence to suggest that April 20th consistently or significantly stands out as a day with a uniquely higher incidence of fatal traffic crashes compared to other days, nor does it show a clear increasing trend in fatalities on this specific day over time.
+
+## References
+
+Harper, S., & Palayew, A. (2019). The Annual Cannabis Holiday and Fatal Traffic Crashes.
